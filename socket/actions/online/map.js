@@ -21,6 +21,13 @@ module.exports = (socket, redis) => {
             ? redis_Hgetall(`visitors:state:country:month:${Year}:${Month}`)
             : redis_Hgetall(`visitors:state:country:year:${Year}`),
         (oVal, iVal) => {
+          // ----------------TEST
+          iVal = {
+            IR: '100',
+            RU: '200',
+            GL: '10',
+          };
+          // --------------------
           oVal === 'monthly'
             ? socket.emit(VISITORS_MONTHLY_STATE_COUNTRY, iVal)
             : socket.emit(VISITORS_YEARLY_STATE_COUNTRY, iVal);
@@ -53,6 +60,21 @@ module.exports = (socket, redis) => {
       if (data) {
         data = JSON.stringify(optimizeCollect(data, 5, false));
         socket.emit('visitorsCountryDetail_receive', data);
+
+        // console.log('countryDetail_mock::', reply);
+        // let obj = {
+        //   tehran: 100,
+        //   tabriz: 100,
+        //   shiraz: 20,
+        //   Mashad: 10,
+        //   Rasht: 50,
+        //   esfahan: 5,
+        //   Zanjan: 10,
+        //   Qom: 12,
+        // };
+        // obj = optimizeCollect(obj, 5);
+        // obj = JSON.stringify(obj);
+        // socket.emit('visitorsCountryDetail_receive', obj);
       }
     });
 };

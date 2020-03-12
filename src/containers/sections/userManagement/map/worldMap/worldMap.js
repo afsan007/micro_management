@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
 import classes from './style.scss';
 import { fromEvent, merge } from 'rxjs';
-import { map, distinctUntilChanged, throttleTime, filter, tap } from 'rxjs/operators';
+import { map, distinctUntilChanged, throttleTime, filter } from 'rxjs/operators';
 import mapData from './data.json';
 
-export default props => {
+export default React.memo(props => {
   const { hover: HoverHandler, click: clickHandler, coloredCN } = props;
   useEffect(() => {
     let countries = Object.keys(coloredCN);
@@ -14,7 +14,6 @@ export default props => {
         map(e => e.target),
         distinctUntilChanged(),
         filter(e => countries.filter(val => val === e.id).length > 0),
-        tap(console.log),
       )
       .subscribe(clickHandler);
   }, [clickHandler, coloredCN]);
@@ -33,4 +32,4 @@ export default props => {
       ))}
     </g>
   );
-};
+});
