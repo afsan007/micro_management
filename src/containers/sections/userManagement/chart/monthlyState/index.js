@@ -1,65 +1,61 @@
-import React,{Component} from 'react'
-import classes from './style.scss';
+import React, { useState } from 'react';
+
 import cl from '../../../../../Hoc/multiclass';
-import MonthlyUsersState from "./users";
-import MonthlyVisitorsState from "./visitors";
-import {ReactComponent as Leftarrow} from '../../../../../assets/icons/arrows_left.svg';
-import {ReactComponent as Rightarrow} from '../../../../../assets/icons/arrows_right.svg';
+import MonthlyVisitorsState from './visitors';
+import MonthlyUsersState from './users';
+import classes from './style.scss';
 
-function cn(elem) { return cl(elem, classes); }
+import { ReactComponent as LeftArrow } from '../../../../../assets/icons/arrows_left.svg';
+import { ReactComponent as RightArrow } from '../../../../../assets/icons/arrows_right.svg';
 
-class MonthlyState extends Component{
-    constructor(props){
-        super(props)
-        this.state={
-            showVisitorsChart:true,
-            showUsersChart:false
-        }
+const cn = elem => cl(elem, classes);
+const MonthlyState = props => {
+  const [showVisitorsChart, setShowVisitorsChart] = useState(true);
+  const [showUsersChart, setShowUsersChart] = useState(false);
+
+  const nexButtonHandler = () => {
+    setShowUsersChart(true);
+    setShowVisitorsChart(false);
+  };
+
+  const prevButtonHandler = () => {
+    setShowUsersChart(false);
+    setShowVisitorsChart(true);
+  };
+  const leftButton = () => {
+    if (showUsersChart) {
+      return (
+        <button
+          type="button"
+          className={cn(['slick-prev', 'slick-arrow'])}
+          onClick={prevButtonHandler}
+        >
+          <LeftArrow width="20px" height="20px" />
+        </button>
+      );
     }
-    nexButtonHandler=()=>{
-        this.setState({
-            showUsersChart:true,
-            showVisitorsChart:false
-        })
+  };
+  const rightButton = () => {
+    if (showVisitorsChart) {
+      return (
+        <button
+          type="button"
+          className={cn(['slick-next', 'slick-arrow'])}
+          onClick={nexButtonHandler}
+        >
+          <RightArrow width="20px" height="20px" />
+        </button>
+      );
     }
-    prevButtonHandler=()=>{
-        this.setState({
-            showUsersChart:false,
-            showVisitorsChart:true
-        })
-    }
-    leftButton=()=>{
-    if(this.state.showUsersChart){
-        return (
-            <button 
-                type="button"
-                className={cn(['slick-prev','slick-arrow'])}
-                onClick={this.prevButtonHandler}
-            ><Leftarrow  width="20px" height="20px"/></button>
-        )
-    }
-    }
-    rightButton=()=>{
-        if(this.state.showVisitorsChart){
-            return(
-                <button 
-                    type="button"
-                    className={cn(['slick-next','slick-arrow'])}
-                    onClick={this.nexButtonHandler}
-                > <Rightarrow width="20px" height="20px"/></button>
-            )
-        }
-    }
-    render(){
-        return(
-            <div className={classes['monthlyState-container']}>
-                {this.leftButton()}
-                {this.rightButton()}
-                <MonthlyVisitorsState show={this.state.showVisitorsChart} />
-                <MonthlyUsersState show={this.state.showVisitorsChart} />
-            </div>
-        )
-    }
-}
+  };
+  return (
+    <div className={classes['monthlyState-container']}>
+      {leftButton()}
+      {rightButton()}
+      <MonthlyVisitorsState show={showVisitorsChart} />
+      <MonthlyUsersState show={showUsersChart} />
+    </div>
+  );
+};
 
 export default MonthlyState;

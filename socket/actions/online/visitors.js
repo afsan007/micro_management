@@ -19,7 +19,7 @@ module.exports = (socket, redis, PubSub) => {
   PubSub.on('message', async (_channel, message) => {
     if (message === online_Visitors) {
       redis.get(online_Visitors, (_err, reply) => {
-        socket.emit(ONLINE_VISITORS, { onlinesCount: reply });
+        socket.emit(ONLINE_VISITORS, +reply);
       });
     }
     if (message === online_Visitors_Total_List) {
@@ -40,10 +40,13 @@ module.exports = (socket, redis, PubSub) => {
       });
     }
   });
-  redis.hgetall(online_Visitors_Total_List, (_err, reply) => {
-    socket.emit(ONLINES_TOTAL_VISIT_LIST, reply);
-  });
+
+  //---->> INITIAL SOCKETS
+  redis.hgetall(online_Visitors_Total_List, (_err, reply) =>
+    socket.emit(ONLINES_TOTAL_VISIT_LIST, reply),
+  );
+
   redis.get(online_Visitors, (_err, reply) => {
-    socket.emit(ONLINE_VISITORS_INITIAL, { onlinesCount: reply });
+    socket.emit(ONLINE_VISITORS_INITIAL, +reply);
   });
 };

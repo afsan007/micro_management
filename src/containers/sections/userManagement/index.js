@@ -6,7 +6,7 @@ import MapDistribution from './map/distribution';
 import ChatNotification from './chat';
 import MonthlyState from './chart/monthlyState';
 import UsersList from './table/usersList';
-import { OnlineUsers, OnlineVisitors, TotalUsers, VerifiedUsers } from './chart/microState/main';
+import { OnlineUsers, OnlineVisitors, TotalUsers, VerifiedUsers } from './chart/microState';
 class UserManagement extends Component {
   constructor(props) {
     super(props);

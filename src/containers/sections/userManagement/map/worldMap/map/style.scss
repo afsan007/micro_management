@@ -1,0 +1,21 @@
+.mapPath {
+  cursor: pointer;
+}
+
+.listed {
+  fill: red;
+}
+
+.state {
+  background: orangered;
+  display: block;
+  width: 100%;
+  padding: 1rem;
+  color: #fff;
+  font-size: 1.5rem;
+}
+
+.disableZoom {
+  background: #ccc;
+  cursor: default;
+}

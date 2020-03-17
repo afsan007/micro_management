@@ -1,11 +1,13 @@
-import React, { Component } from 'react';
-import classes from './style.scss';
-import $ from 'jquery';
-import Color from 'color';
 import { Draggable, TweenLite } from 'gsap/all';
-import WorldMapSvg from './worldMap';
+import React, { Component } from 'react';
 import ReactTooltip from 'react-tooltip';
-import MapLoading from './mapLoading';
+import Color from 'color';
+import $ from 'jquery';
+
+import classes from './style.scss';
+import MapLoading from './loading';
+import WorldMapSvg from './map';
+
 class WorldMap extends Component {
   constructor(props) {
     super(props);
@@ -237,4 +239,4 @@ class WorldMap extends Component {
     }
   }
 }
-export default WorldMap;
+export default React.memo(WorldMap);

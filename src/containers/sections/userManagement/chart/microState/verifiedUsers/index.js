@@ -1,69 +1,51 @@
-import React, { Component } from 'react';
-import MicroState from '../index';
-import classes from './style.scss';
-import { ReactComponent as DownArrow } from '../../../../../../assets/icons/arrows_down_double.svg';
-import { ReactComponent as UpArrow } from '../../../../../../assets/icons/arrows_up_double.svg';
-import moment from 'moment';
+import React, { useCallback, useState, useEffect } from 'react';
 import { graphql } from 'react-apollo';
+import moment from 'moment';
+
 import verifiedUserCount from '../../../../../../Graphql/queries/verifiedUsers';
+import MicroChart from '../../../../../../components/layout/chart/microChart';
 
-class VerifiedUsers extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      verifiedCount: 0,
-      diffCount: null,
-      error: null,
-      chartData: null,
-      increase: false,
-      decrease: false,
-    };
-  }
-  componentWillMount() {
-    let res = [];
-    let k = 0;
+const VerifiedUsers = props => {
+  const usersSocket = props.socket;
+  const gql = props.data;
 
-    while (k < moment().daysInMonth()) {
-      res.push(0);
-      k++;
-    }
+  const [verifiedCount, setVerifiedCount] = useState(0);
+  const [chartData, setChartData] = useState([]);
+  const [diffCount, setDiffCount] = useState(0);
 
-    this.setState({ chartData: [{ data: res }] });
-    const usersSocket = this.props.socket;
-    usersSocket.on('totalVerifiedUsersList', list => {
-      if (!list) list = { key: 0 };
+  const [decrease, setDecrease] = useState(false);
+  const [increase, setIncrease] = useState(false);
 
-      if (!this.state.diffCount) {
-        this.setState({ diffCount: Object.values(list) });
+  const setData = useCallback(setChartData, []);
+  useEffect(() => {
+    let arrowConfig = list => {
+      if (!diffCount) {
+        setDiffCount(Object.values(list));
       } else {
-        let prevCount = this.state.diffCount;
-        let verifiedCount = this.state.verifiedCount;
+        let prevCount = diffCount;
         let currentCount = Object.values(list);
         if (prevCount < currentCount) {
-          this.setState({
-            increase: true,
-            decrease: false,
-            diffCount: currentCount,
-            verifiedCount: ++verifiedCount,
-          });
+          setIncrease(true);
+          setDecrease(false);
+          setDiffCount(currentCount);
+          setVerifiedCount(verifiedCount + 1);
         }
         if (prevCount > currentCount) {
-          this.setState({
-            decrease: true,
-            increase: false,
-            diffCount: currentCount,
-            verifiedCount: --verifiedCount,
-          });
+          setIncrease(false);
+          setDecrease(true);
+          setDiffCount(currentCount);
+          setVerifiedCount(verifiedCount - 1);
         }
       }
-      if (Object.values(list)[0] === 0) return null;
-
+    };
+    let usersListConfig = list => {
       let chartData = list;
       let resultData = [];
-      let current_Month = moment().format('MM');
-      let current_Day = moment().format('D');
-      let current_Year = moment().format('YYYY');
-      let Days_Of_Month = moment().daysInMonth();
+      let time = moment();
+      let current_Month = time.format('MM');
+      let current_Day = time.format('D');
+      let current_Year = time.format('YYYY');
+      let Days_Of_Month = time.daysInMonth();
       let i = 0;
       let j = +current_Day;
 
@@ -79,47 +61,40 @@ class VerifiedUsers extends Component {
         j++;
       }
 
-      this.setState({ chartData: [{ data: resultData }] });
-    });
-  }
-  arrowDownHandler = () => {
-    let classArray = [classes.arrow_down];
-    if (this.state.decrease) {
-      classArray.push(classes.visible);
-    }
-    return classArray.join(' ');
+      setChartData([{ data: resultData }]);
+    };
+    let totalUsersList = list => {
+      if (!list) list = { key: 0 };
+      arrowConfig(list);
+      if (Object.values(list)[0] === 0) return null;
+      usersListConfig(list);
+    };
+    usersSocket.on('totalVerifiedUsersList', totalUsersList);
+    return () => {
+      usersSocket.off('totalVerifiedUsersList', totalUsersList);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const initialCount = () => {
+    let receivedUsers = gql.verifiedUsersCount;
+    if (receivedUsers) return receivedUsers.count === 0 ? verifiedCount : receivedUsers.count;
   };
-  arrowUpHandler = () => {
-    let classArray = [classes.arrow_up];
-    if (this.state.increase) {
-      classArray.push(classes.visible);
-    }
-    return classArray.join(' ');
-  };
-  initialCount = () => {
-    if (this.props.data.verifiedUsersCount) {
-      return this.props.data.verifiedUsersCount.count === 0
-        ? this.state.verifiedCount
-        : this.props.data.verifiedUsersCount.count;
-    }
-  };
-  render() {
-    return (
-      <div className={classes.container}>
-        <h5 className={classes.header}>Verified users</h5>
-        <div className={classes.counter_section}>
-          <span className={classes.counter}>{this.initialCount()}</span>
-          <span className={this.arrowUpHandler()}>
-            <UpArrow width="15px" height="15px" />
-          </span>
-          <span className={this.arrowDownHandler()}>
-            <DownArrow width="15px" height="15px" />
-          </span>
-        </div>
-        <MicroState type="users_verified" color="#662E9B" series={this.state.chartData} />
-      </div>
-    );
-  }
-}
+  return (
+    <MicroChart
+      {...{
+        diffCount,
+        decrease,
+        increase,
+        onlinesCount: initialCount(),
+        chartData,
+        setChartData: setData,
+        chartType: 'users_verified',
+        boxColor: '#662E9B',
+        header: 'Verified users',
+      }}
+    />
+  );
+};
 
 export default graphql(verifiedUserCount)(VerifiedUsers);

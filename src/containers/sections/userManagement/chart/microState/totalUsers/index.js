@@ -1,71 +1,52 @@
-import React, { Component } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { graphql } from 'react-apollo';
 import moment from 'moment';
-import MicroState from '../index';
-import classes from './style.scss';
-import { ReactComponent as DownArrow } from '../../../../../../assets/icons/arrows_down_double.svg';
-import { ReactComponent as UpArrow } from '../../../../../../assets/icons/arrows_up_double.svg';
+
+import MicroChart from '../../../../../../components/layout/chart/microChart';
 import userCountQuery from '../../../../../../Graphql/queries/usersCount';
-class TotalUsers extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      TotalsCount: 0,
-      diffCount: null,
-      chartData: null,
-      error: null,
-      increase: false,
-      decrease: false,
-    };
-  }
-  componentDidMount() {
-    let res = [];
-    let k = 0;
+const TotalUsers = props => {
+  const [decrease, setDecrease] = useState(false);
+  const [increase, setIncrease] = useState(false);
 
-    while (k < moment().daysInMonth()) {
-      res.push(0);
-      k++;
-    }
+  const [diffCount, setDiffCount] = useState(0);
+  const [chartData, setChartData] = useState([]);
+  const [totalsCount, setTotalsCount] = useState(0);
 
-    this.setState({ chartData: [{ data: res }] });
+  const { socket: usersSocket } = props;
+  const gql = props.data;
 
-    const usersSocket = this.props.socket;
-    usersSocket.on('totalUsersList', list => {
-      if (!list) {
-        list = { key: 0 };
-      }
-      if (!this.state.diffCount) {
-        this.setState({ diffCount: Object.values(list) });
+  const setData = useCallback(setChartData, []);
+
+  useEffect(() => {
+    const arrowConfig = listVals => {
+      if (!diffCount) {
+        setDiffCount(listVals);
       } else {
-        let prevCount = this.state.diffCount;
-        let TotalsCount = this.state.TotalsCount;
-        let currentCount = Object.values(list);
+        let prevCount = diffCount;
+        let currentCount = listVals;
+
         if (prevCount < currentCount) {
-          this.setState({
-            increase: true,
-            decrease: false,
-            diffCount: currentCount,
-            TotalsCount: ++TotalsCount,
-          });
+          setIncrease(true);
+          setDecrease(false);
+          setDiffCount(currentCount);
+          setTotalsCount(totalsCount + 1);
         }
         if (prevCount > currentCount) {
-          this.setState({
-            decrease: true,
-            increase: false,
-            diffCount: currentCount,
-            TotalsCount: --TotalsCount,
-          });
+          setIncrease(false);
+          setDecrease(true);
+          setDiffCount(currentCount);
+          setTotalsCount(totalsCount - 1);
         }
       }
-      if (Object.values(list)[0] === 0) {
-        return null;
-      }
+    };
+    const userListConfig = list => {
       let chartData = list,
         resultData = [],
-        current_Month = moment().format('MM'),
-        current_Day = moment().format('D'),
-        current_Year = moment().format('YYYY'),
-        Days_Of_Month = moment().daysInMonth(),
+        time = moment(),
+        current_Month = time.format('MM'),
+        current_Day = time.format('D'),
+        current_Year = time.format('YYYY'),
+        Days_Of_Month = time.daysInMonth(),
         i = 0,
         j = +current_Day;
 
@@ -81,46 +62,44 @@ class TotalUsers extends Component {
         resultData[j] = 0;
         j++;
       }
-      this.setState({ chartData: [{ data: resultData }] });
-    });
-  }
-  componentDidUpdate(prevProps, prevState) {
-    if (this.props.data.usersCount && this.props.data.usersCount !== prevProps.data.usersCount) {
-      let currentCount = this.props.data.usersCount.count;
-      this.setState({ TotalsCount: currentCount });
-    }
-  }
-  arrowDownHandler = () => {
-    let classArray = [classes.arrow_down];
-    if (this.state.decrease) {
-      classArray.push(classes.visible);
-    }
-    return classArray.join(' ');
-  };
-  arrowUpHandler = () => {
-    let classArray = [classes.arrow_up];
-    if (this.state.increase) {
-      classArray.push(classes.visible);
-    }
-    return classArray.join(' ');
-  };
-  render() {
-    return (
-      <div className={classes.container}>
-        <h5 className={classes.header}>Total users</h5>
-        <div className={classes.counter_section}>
-          <span className={classes.counter}>{this.state.TotalsCount}</span>
-          <span className={this.arrowUpHandler()}>
-            <UpArrow width="15px" height="15px" />
-          </span>
-          <span className={this.arrowDownHandler()}>
-            <DownArrow width="15px" height="15px" />
-          </span>
-        </div>
-        <MicroState type="users_count" color="#00B1F2" series={this.state.chartData} />
-      </div>
-    );
-  }
-}
+      return resultData;
+    };
+    const usersList = async list => {
+      if (!list) list = { key: 0 };
+      const listVals = Object.values(list);
+      arrowConfig(listVals);
+      if (listVals[0] === 0) return null;
+      const resultData = await userListConfig(list);
+      setChartData([{ data: resultData }]);
+    };
+    usersSocket.on('totalUsersList', usersList);
+    return () => {
+      usersSocket.off('totalUsersList', usersList);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (gql.usersCount) setTotalsCount(gql.usersCount.count);
+    };
+  }, [gql.usersCount]);
+
+  return (
+    <MicroChart
+      {...{
+        diffCount,
+        decrease,
+        increase,
+        onlinesCount: totalsCount,
+        chartData,
+        setChartData: setData,
+        chartType: 'users_count',
+        boxColor: '#00B1F2',
+        header: 'Total users',
+      }}
+    />
+  );
+};
 
 export default graphql(userCountQuery)(TotalUsers);

@@ -1,0 +1,57 @@
+{
+  "fill": {
+    "type": "gradient",
+    "gradient": {
+      "shadeIntensity": 1,
+      "opacityFrom": 0.7,
+      "opacityTo": 0.9,
+      "stops": [0, 90, 100]
+    }
+  },
+  "grid": {
+    "xaxis": { "lines": { "show": false } },
+    "yaxis": { "lines": { "show": false } }
+  },
+  "dataLabels": {
+    "enabled": true,
+    "dropShadow": { "enabled": true },
+    "style": { "fontSize": "16px" }
+  },
+  "noData": {
+    "text": "Data has not been set",
+    "align": "center",
+    "verticalAlign": "middle",
+    "offsetX": 0,
+    "offsetY": 0,
+    "style": {
+      "color": "#fff",
+      "fontSize": "14px",
+      "fontFamily": "inherit"
+    }
+  },
+  "yaxis": [
+    {
+      "forceNiceScale": true,
+      "axisTicks": { "show": true },
+      "axisBorder": {
+        "show": true,
+        "color": "#ccc"
+      },
+      "labels": {
+        "style": { "color": "#ccc" }
+      },
+      "title": {
+        "text": "users",
+        "style": {
+          "color": "#ccc",
+          "fontSize": "1.2rem",
+          "fontFamily": "Helvetica, Arial, sans-serif"
+        }
+      }
+    }
+  ],
+  "legend": {
+    "position": "top",
+    "onItemClick": { "toggleDataSeries": true }
+  }
+}

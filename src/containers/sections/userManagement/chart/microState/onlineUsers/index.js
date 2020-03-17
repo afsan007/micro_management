@@ -1,64 +1,32 @@
-import React, { Component } from 'react';
-import MicroState from '../index';
-import classes from './style.scss';
-import { ReactComponent as DownArrow } from '../../../../../../assets/icons/arrows_down_double.svg';
-import { ReactComponent as UpArrow } from '../../../../../../assets/icons/arrows_up_double.svg';
+import React, { useState, useEffect, useCallback } from 'react';
 import moment from 'moment';
-class OnlineUsers extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      statistic: {
-        onlinesCount: 0,
-        diffCount: 0,
-        onlinesListCount: 0,
-      },
-      chartData: null,
-      error: null,
-      increase: false,
-      decrease: false,
+
+import MicroChart from '../../../../../../components/layout/chart/microChart';
+
+const OnlineUsers = props => {
+  const { socket: usersSocket } = props;
+
+  const [decrease, setDecrease] = useState(false);
+  const [increase, setIncrease] = useState(false);
+  const [onlinesCount, setOnlinesCount] = useState(0);
+  const [diffCount, setDiffCount] = useState(0);
+  const [chartData, setChartData] = useState([]);
+
+  let time = moment();
+  let current_Month = time.format('MM');
+  let current_Day = time.format('D');
+  let current_Year = time.format('YYYY');
+  let Days_Of_Month = time.daysInMonth();
+
+  useEffect(() => {
+    const channels = {
+      initial: 'onlines_initial',
+      list: 'onlineUsersTList',
+      onlines: 'usersOnline',
     };
-  }
 
-  componentWillMount() {
-    let current_Month = moment().format('MM');
-    let current_Day = moment().format('D');
-    let current_Year = moment().format('YYYY');
-    let Days_Of_Month = moment().daysInMonth();
-    let j = 0;
-    let finalData = [];
-    while (j < Days_Of_Month) {
-      finalData[j] = 0;
-      j++;
-    }
-    this.setState({ chartData: [{ data: finalData }] });
-
-    const usersSocket = this.props.socket;
-    usersSocket.on('connect_error', err => {
-      if (err) this.setState({ error: 'socket server is down' });
-    });
-
-    usersSocket.on('onlines_initial', initial => {
-      if (!initial) initial = 0;
-
-      let statistic = {
-        ...this.state.statistic,
-        ...initial,
-      };
-      this.setState({ statistic });
-    });
-
-    usersSocket.on('onlineUsersList', count => {
-      if (!count) return null;
-
-      let statistic = {
-        ...this.state.statistic,
-        ...count,
-      };
-      this.setState({ statistic });
-    });
-
-    usersSocket.on('onlineUsersTList', list => {
+    const initialData = count => setOnlinesCount(count || 0);
+    const chartData = list => {
       if (!list) return null;
 
       let chartData = list;
@@ -79,53 +47,50 @@ class OnlineUsers extends Component {
         resultData[j] = 0;
         j++;
       }
-      this.setState({ chartData: [{ data: resultData }] });
-    });
-
-    usersSocket.on('usersOnline', count => {
+      setChartData([{ data: resultData }]);
+    };
+    const arrowConfig = count => {
       if (!count) return null;
+      let prevCount = +onlinesCount;
+      let nexCount = +count;
+      if (prevCount < nexCount) {
+        setIncrease(true);
+        setDecrease(false);
+      }
+      if (prevCount > nexCount) {
+        setIncrease(false);
+        setDecrease(true);
+      }
+      setDiffCount(prevCount - nexCount);
+      setOnlinesCount(count);
+    };
 
-      let prevCount = +this.state.statistic.onlinesCount;
-      let nexCount = +count.onlinesCount;
-      if (prevCount < nexCount) this.setState({ increase: true, decrease: false });
-      if (prevCount > nexCount) this.setState({ decrease: true, increase: false });
+    usersSocket.on(channels.initial, initialData);
+    usersSocket.on(channels.list, chartData);
+    usersSocket.on(channels.onlines, arrowConfig);
+    return () => {
+      usersSocket.off(channels.initial, initialData);
+      usersSocket.off(channels.list, chartData);
+      usersSocket.off(channels.onlines, arrowConfig);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const setData = useCallback(setChartData, []);
+  return (
+    <MicroChart
+      {...{
+        diffCount,
+        decrease,
+        increase,
+        onlinesCount,
+        chartData,
+        setChartData: setData,
+        chartType: 'online_users',
+        boxColor: '#4caf50',
+        header: 'online Users',
+      }}
+    />
+  );
+};
 
-      let statistic = {
-        ...this.state.statistic,
-        ...count,
-        diffCount: prevCount - nexCount,
-      };
-
-      this.setState({ statistic });
-    });
-  }
-  arrowDownHandler = () => {
-    let classArray = [classes.arrow_down];
-    if (this.state.decrease) classArray.push(classes.visible);
-    return classArray.join(' ');
-  };
-  arrowUpHandler = () => {
-    let classArray = [classes.arrow_up];
-    if (this.state.increase) classArray.push(classes.visible);
-    return classArray.join(' ');
-  };
-  render() {
-    return (
-      <div className={classes.container}>
-        <h5 className={classes.header}>online Users</h5>
-        <div className={classes.counter_section}>
-          <span className={classes.counter}>{this.state.statistic.onlinesCount}</span>
-          <span className={this.arrowUpHandler()}>
-            <UpArrow width="15px" height="15px" />
-          </span>
-          <span className={this.arrowDownHandler()}>
-            <DownArrow width="15px" height="15px" />
-          </span>
-        </div>
-        <MicroState type="online_users" color="#4caf50" series={this.state.chartData} />
-      </div>
-    );
-  }
-}
-
-export default OnlineUsers;
+export default React.memo(OnlineUsers);

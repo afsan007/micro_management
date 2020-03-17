@@ -26,7 +26,7 @@ module.exports = (socket, redis, PubSub) => {
     );
     switch (message) {
       case online_Users_Count:
-        redis.get(message, (_err, reply) => socket.emit(USERS_ONLINE, { onlinesCount: +reply }));
+        redis.get(message, (_err, reply) => socket.emit(USERS_ONLINE, +reply));
         break;
       case online_Users_List:
         redis.hgetall(online_Users_Total_List, (_err, reply) => {
@@ -58,12 +58,12 @@ module.exports = (socket, redis, PubSub) => {
 
   // initial count
   redis.get(online_Users_Count, (_err, reply) => {
-    socket.emit(ONLINES_INITIAL, { onlinesCount: +reply });
+    socket.emit(ONLINES_INITIAL, +reply);
   });
 
   // Users Online List Per Day
   redis.scard(online_Users_List, (_err, reply) => {
-    socket.emit(ONLINES_LIST, { onlinesListCount: +reply });
+    socket.emit(ONLINES_LIST, +reply);
   });
 
   //users online list initial numbers

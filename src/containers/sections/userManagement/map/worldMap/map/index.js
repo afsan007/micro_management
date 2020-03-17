@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
-import classes from './style.scss';
 import { fromEvent, merge } from 'rxjs';
 import { map, distinctUntilChanged, throttleTime, filter } from 'rxjs/operators';
+
 import mapData from './data.json';
+import classes from './style.scss';
 
 export default React.memo(props => {
   const { hover: HoverHandler, click: clickHandler, coloredCN } = props;

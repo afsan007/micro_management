@@ -1,114 +1,105 @@
-import React, { Component } from 'react';
-import MicroState from '../index';
-import classes from './style.scss';
-import { ReactComponent as DownArrow } from '../../../../../../assets/icons/arrows_down_double.svg';
-import { ReactComponent as UpArrow } from '../../../../../../assets/icons/arrows_up_double.svg';
+/* eslint-disable react-hooks/exhaustive-deps */
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import moment from 'moment';
+import _ from 'lodash';
+import MicroChart from '../../../../../../components/layout/chart/microChart';
 
-class OnlineVisitors extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      statistic: {
-        onlinesCount: 0,
-        diffCount: 0,
-      },
-      chartData: null,
-      error: null,
-      increase: false,
-      decrease: false,
-    };
-  }
-  componentWillMount() {
-    let current_Month = moment().format('MM');
-    let current_Day = moment().format('D');
-    let current_Year = moment().format('YYYY');
-    let Days_Of_Month = moment().daysInMonth();
-    let j = 0;
-    let finalData = [];
-    while (j < Days_Of_Month) {
-      finalData[j] = 0;
-      j++;
-    }
-    this.setState({ chartData: [{ data: finalData }] });
+const OnlineVisitors = props => {
+  const { socket: visitorsSocket } = props;
 
-    const visitorsSocket = this.props.socket;
-    visitorsSocket.on('connect_error', err => {
-      if (err) this.setState({ error: 'socket server is down' });
-    });
+  const [decrease, setDecrease] = useState(false);
+  const [increase, setIncrease] = useState(false);
 
-    visitorsSocket.on('onlineVisitorsCount', count => {
-      if (!count) return null;
+  const [onlinesCount, setOnlinesCount] = useState(0);
+  const [chartData, setChartData] = useState([]);
+  const [diffCount, setDiffCount] = useState(0);
 
-      let prevCount = +this.state.statistic.onlinesCount;
-      let nexCount = +count.onlinesCount;
+  let { current: time } = useRef(moment());
+  let { current: chartD } = useRef(false);
 
-      if (prevCount < nexCount) this.setState({ increase: true, decrease: false });
-      if (prevCount > nexCount) this.setState({ decrease: true, increase: false });
+  let current_Month = time.format('MM');
+  let current_Day = time.format('D');
+  let current_Year = time.format('YYYY');
+  let Days_Of_Month = time.daysInMonth();
 
-      let statistic = { ...this.state.statistic, ...count };
-      this.setState({ statistic });
-    });
+  useEffect(() => {
+    const initialCountChannel = 'onlineVisitorsInitial';
+    const initialData = count => setOnlinesCount(count || 0);
+    visitorsSocket.on(initialCountChannel, initialData);
 
-    visitorsSocket.on('onlineVisitorsInitial', count => {
-      if (!count.onlinesCount) count = { onlinesCount: 0 };
+    return () => visitorsSocket.off(initialCountChannel, initialData);
+  }, []);
 
-      let statistic = { ...this.state.statistic, ...count };
-      this.setState({ statistic });
-    });
-    visitorsSocket.on('onlineVisitorsTList', list => {
+  useEffect(() => {
+    if (chartData.length && _.reduce(chartData[0].data, (sum, n) => sum + n, 0)) chartD = !chartD;
+
+    const totalListChannel = 'onlineVisitorsTList';
+    const chart_Data = list => {
       if (!list) return null;
-
-      let chartData = list;
       let resultData = [];
+
       let i = 0;
-      let j = +current_Day;
+      let j = current_Day;
 
       while (i < current_Day) {
         let specificDay = `${current_Year}/${current_Month}/${i + 1}`;
-        chartData[specificDay] === undefined
+        list[specificDay] === undefined
           ? (resultData[i] = 0)
-          : (resultData[i] = Object.keys(JSON.parse(chartData[specificDay])).length);
+          : (resultData[i] = Object.keys(JSON.parse(list[specificDay])).length);
         i++;
       }
+
       while (j < Days_Of_Month) {
         resultData[j] = 0;
         j++;
       }
-      this.setState({ chartData: [{ data: resultData }] });
-    });
-  }
-  arrowDownHandler = () => {
-    let classArray = [classes.arrow_down];
-    if (this.state.decrease) {
-      classArray.push(classes.visible);
-    }
-    return classArray.join(' ');
-  };
-  arrowUpHandler = () => {
-    let classArray = [classes.arrow_up];
-    if (this.state.increase) {
-      classArray.push(classes.visible);
-    }
-    return classArray.join(' ');
-  };
-  render() {
-    return (
-      <div className={classes.container}>
-        <h5 className={classes.header}>online visitors</h5>
-        <div className={classes.counter_section}>
-          <span className={classes.counter}>{this.state.statistic.onlinesCount}</span>
-          <span className={this.arrowUpHandler()}>
-            <UpArrow width="15px" height="15px" />
-          </span>
-          <span className={this.arrowDownHandler()}>
-            <DownArrow width="15px" height="15px" />
-          </span>
-        </div>
-        <MicroState type="online_visitors" color="#D7263D" series={this.state.chartData} />
-      </div>
-    );
-  }
-}
+
+      setChartData([{ data: resultData }]);
+    };
+
+    visitorsSocket.on(totalListChannel, chart_Data);
+    return () => visitorsSocket.off(totalListChannel, chart_Data);
+  }, [chartD]);
+
+  useEffect(() => {
+    const onlinesCountChannel = 'onlineVisitorsCount';
+    const arrowConfig = count => {
+      if (count === undefined || count === null) return null;
+      let prevCount = onlinesCount;
+      let nexCount = count;
+
+      if (prevCount < nexCount) {
+        setIncrease(true);
+        setDecrease(false);
+      }
+      if (prevCount > nexCount) {
+        setDecrease(true);
+        setIncrease(false);
+      }
+      setDiffCount(prevCount - nexCount);
+      setOnlinesCount(count);
+    };
+
+    visitorsSocket.on(onlinesCountChannel, arrowConfig);
+    return () => visitorsSocket.off(onlinesCountChannel, arrowConfig);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onlinesCount]);
+
+  return (
+    <MicroChart
+      {...{
+        diffCount,
+        decrease,
+        increase,
+        onlinesCount,
+        chartData,
+        setChartData: useCallback(setChartData, []),
+        chartType: 'online_visitors',
+        boxColor: '#D7263D',
+        header: 'online visitors',
+      }}
+    />
+  );
+};
 
 export default OnlineVisitors;

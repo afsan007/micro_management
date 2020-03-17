@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ProgressBar } from 'react-bootstrap';
+import shortNum from 'short-number';
+
 import cl from '../../../../../Hoc/multiclass';
 import Aux from '../../../../../Hoc/wrapper';
 import classes from './style.scss';
-import NodataSvg from './svg/noDataSvg';
-import shortNum from 'short-number';
+import NodataSvg from './loading';
 
 export default React.memo(props => {
   let { mapType, visiSocket, mapClicked } = props;
@@ -31,14 +32,12 @@ export default React.memo(props => {
   );
 
   useEffect(() => {
-    console.log('One');
     initialize();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // componentDidUpdate
   useEffect(() => {
-    console.log('Two', mapClicked);
     if (mapClicked.id !== 'world') {
       visiSocket.emit('visitorsCountryDetail', {
         countryId: mapClicked.id,
@@ -51,14 +50,12 @@ export default React.memo(props => {
   // componentDidUpdate
   useEffect(() => {
     return () => {
-      console.log('Three');
       set_dataLoading(false);
     };
   }, [mapInitialData, mapSpecificData]);
 
   //componentDidMount
   useEffect(() => {
-    console.log('Four');
     let visCountry = 'visitorsCountryDetail_receive';
     let visYearlyStateCountry = 'visitorsYearlyStateCountry';
 
@@ -76,7 +73,6 @@ export default React.memo(props => {
     visiSocket.on(visCountry, visCountry_listener);
     visiSocket.on(visYearlyStateCountry, visYearlyStateCountry_listener);
     return () => {
-      console.log('Four', 'clean');
       visiSocket.off(visCountry, visCountry_listener);
       visiSocket.off(visYearlyStateCountry, visYearlyStateCountry_listener);
     };
